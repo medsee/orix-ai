@@ -1315,7 +1315,7 @@ html, body {
 <script>
 // ═══════════ STATE ═══════════
 // API key (encoded)
-const _k = [115,107,45,111,114,45,118,49,45,100,49,99,97,100,52,99,57,99,100,48,55,102,56,97,54,98,98,56,49,100,54,56,49,56,56,55,53,102,97,57,50,99,48,55,100,54,97,57,48,49,49,53,99,54,56,56,97,56,51,51,51,49,49,57,52,52,52,54,102,100,51,56,54];
+const _k = [103,115,107,95,70,73,82,108,113,103,110,68,88,79,53,98,78,101,104,51,106,97,78,78,87,71,100,121,98,51,70,89,110,77,89,73,88,113,90,70,98,118,87,48,66,86,115,122,122,103,86,80,102,113,98,68];
 const API_KEY = localStorage.getItem('orix_api_key') || _k.map(c=>String.fromCharCode(c)).join('');
 let conversations = JSON.parse(localStorage.getItem('orix_convos') || '{}');
 let currentConvoId = null;
@@ -1489,7 +1489,7 @@ async function generateResponse() {
     isGenerating = false;
     document.getElementById('stopBtn').classList.remove('active');
     document.getElementById('typingIndicator').classList.remove('active');
-    appendMessage('assistant', '⚠️ API kalit kiritilmagan. Sozlamalar → API Kalit maydoniga OpenRouter API kalitingizni kiriting.');
+    appendMessage('assistant', '⚠️ API kalit kiritilmagan. Sozlamalar → API Kalit maydoniga Groq API kalitingizni kiriting.');
     messages.push({ role: 'assistant', content: 'API kalit kiritilmagan.' });
     return;
   }
@@ -1497,19 +1497,17 @@ async function generateResponse() {
   const maxTok = parseInt(document.getElementById('maxTokens').value);
   const systemPrompt = document.getElementById('systemPrompt').value;
 
-  // Build OpenAI-compatible messages
   const apiMessages = [
     { role: 'system', content: systemPrompt },
     ...messages.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
   ];
 
-  // Models to try (all free on OpenRouter)
+  // Groq models to try
   const models = [
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'qwen/qwen3-235b-a22b:free',
-    'deepseek/deepseek-chat-v3-0324:free',
-    'google/gemma-3-27b-it:free',
-    'mistralai/mistral-small-3.1-24b-instruct:free'
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'gemma2-9b-it',
+    'mixtral-8x7b-32768'
   ];
 
   abortController = new AbortController();
@@ -1519,13 +1517,11 @@ async function generateResponse() {
     if (!isGenerating) break;
 
     try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.href,
-          'X-Title': 'Orix AI'
+          'Authorization': `Bearer ${apiKey}`
         },
         signal: abortController.signal,
         body: JSON.stringify({
@@ -1539,7 +1535,7 @@ async function generateResponse() {
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         const errMsg = errData.error?.message || '';
-        if (res.status === 429 || errMsg.includes('rate') || errMsg.includes('limit') || errMsg.includes('unavailable')) {
+        if (res.status === 429 || errMsg.includes('rate') || errMsg.includes('limit')) {
           console.log(`${model} failed, trying next...`);
           continue;
         }
@@ -1583,7 +1579,7 @@ async function generateResponse() {
 
   if (!success && isGenerating) {
     document.getElementById('typingIndicator').classList.remove('active');
-    appendMessage('assistant', '⚠️ Barcha modellar bilan ulanib bo\'lmadi. Iltimos, biroz kutib qaytadan urinib ko\'ring.');
+    appendMessage('assistant', '⚠️ Xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring.');
     messages.push({ role: 'assistant', content: 'Ulanish xatosi' });
   }
 
