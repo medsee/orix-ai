@@ -1497,71 +1497,101 @@ async function generateResponse() {
   const maxTok = parseInt(document.getElementById('maxTokens').value);
   const systemPrompt = document.getElementById('systemPrompt').value;
 
-  // Build messages for Gemini
   const geminiMessages = messages.map(m => ({
     role: m.role === 'user' ? 'user' : 'model',
     parts: [{ text: m.content }]
   }));
 
+  // Multiple models to try in order
+  const models = [
+    'gemini-2.0-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro-latest',
+    'gemini-pro'
+  ];
+
   abortController = new AbortController();
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: abortController.signal,
-        body: JSON.stringify({
-          contents: geminiMessages,
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: {
-            temperature: temp,
-            maxOutputTokens: maxTok,
-          }
-        })
+  let success = false;
+
+  for (const model of models) {
+    if (!isGenerating) break;
+
+    try {
+      const apiVersion = model === 'gemini-pro' ? 'v1' : 'v1beta';
+      const useSystem = model !== 'gemini-pro';
+
+      const bodyObj = {
+        contents: geminiMessages,
+        generationConfig: {
+          temperature: temp,
+          maxOutputTokens: maxTok,
+        }
+      };
+      if (useSystem) {
+        bodyObj.systemInstruction = { parts: [{ text: systemPrompt }] };
       }
-    );
 
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: abortController.signal,
+          body: JSON.stringify(bodyObj)
+        }
+      );
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData.error?.message || '';
+        // If quota exceeded or model not found, try next model
+        if (errMsg.includes('quota') || errMsg.includes('not found') || errMsg.includes('not supported') || res.status === 429) {
+          console.log(`${model} failed, trying next...`);
+          continue;
+        }
+        throw new Error(errMsg || `API xatosi: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Javob olib bo\'lmadi.';
+
+      document.getElementById('typingIndicator').classList.remove('active');
+
+      messages.push({ role: 'assistant', content: aiText });
+
+      const msgEl = createAIMessageElement();
+      const contentEl = document.getElementById('streamingContent');
+      const actionsEl = document.getElementById('streamingActions');
+
+      const streamEnabled = document.getElementById('streamToggle').classList.contains('active');
+
+      if (streamEnabled) {
+        await streamText(contentEl, aiText);
+      } else {
+        contentEl.innerHTML = formatMarkdown(aiText);
+      }
+
+      contentEl.removeAttribute('id');
+      actionsEl.removeAttribute('id');
+      actionsEl.style.display = 'flex';
+
+      saveConversation();
+      renderChatHistory();
+      success = true;
+      break;
+
+    } catch (err) {
+      if (err.name === 'AbortError') { success = true; break; }
+      console.log(`${model} error:`, err.message);
+      continue;
+    }
+  }
+
+  if (!success && isGenerating) {
     document.getElementById('typingIndicator').classList.remove('active');
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `API xatosi: ${res.status}`);
-    }
-
-    const data = await res.json();
-    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Javob olib bo\'lmadi.';
-
-    messages.push({ role: 'assistant', content: aiText });
-
-    // Simulate streaming
-    const msgEl = createAIMessageElement();
-    const contentEl = document.getElementById('streamingContent');
-    const actionsEl = document.getElementById('streamingActions');
-
-    const streamEnabled = document.getElementById('streamToggle').classList.contains('active');
-
-    if (streamEnabled) {
-      await streamText(contentEl, aiText);
-    } else {
-      contentEl.innerHTML = formatMarkdown(aiText);
-    }
-
-    // Remove IDs so future messages work
-    contentEl.removeAttribute('id');
-    actionsEl.removeAttribute('id');
-    actionsEl.style.display = 'flex';
-
-    saveConversation();
-    renderChatHistory();
-
-  } catch (err) {
-    document.getElementById('typingIndicator').classList.remove('active');
-    if (err.name !== 'AbortError') {
-      appendMessage('assistant', '⚠️ Xatolik yuz berdi: ' + err.message);
-      messages.push({ role: 'assistant', content: '⚠️ Xatolik: ' + err.message });
-    }
+    appendMessage('assistant', '⚠️ Barcha modellar bilan ulanib bo\'lmadi. Iltimos, biroz kutib qaytadan urinib ko\'ring yoki Sozlamalardan yangi API kalit kiriting.');
+    messages.push({ role: 'assistant', content: 'Ulanish xatosi' });
   }
 
   isGenerating = false;
