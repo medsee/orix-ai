@@ -1249,7 +1249,7 @@ html, body {
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">API Kalit</label>
-        <input class="form-input" id="apiKeyInput" type="password" value="AIzaSyCI4NT5-mfTrSePLOYZxixnFfgoDVHFJYo">
+        <input class="form-input" id="apiKeyInput" type="password" placeholder="Gemini API kalitingizni kiriting...">
       </div>
       <div class="form-group">
         <label class="form-label">Til</label>
@@ -1314,7 +1314,7 @@ html, body {
 
 <script>
 // ═══════════ STATE ═══════════
-const API_KEY = 'AIzaSyCI4NT5-mfTrSePLOYZxixnFfgoDVHFJYo';
+const API_KEY = ''; // Foydalanuvchi o'zi kiritadi
 let conversations = JSON.parse(localStorage.getItem('orix_convos') || '{}');
 let currentConvoId = null;
 let messages = [];
@@ -1482,7 +1482,16 @@ async function generateResponse() {
   document.getElementById('typingIndicator').classList.add('active');
   scrollToBottom();
 
-  const apiKey = document.getElementById('apiKeyInput').value || API_KEY;
+  const apiKey = document.getElementById('apiKeyInput').value.trim() || localStorage.getItem('orix_api_key') || '';
+  if (!apiKey) {
+    isGenerating = false;
+    document.getElementById('stopBtn').classList.remove('active');
+    document.getElementById('typingIndicator').classList.remove('active');
+    appendMessage('assistant', '⚠️ API kalit kiritilmagan. Yuqoridagi ⚙️ tugmani bosib, Sozlamalar → API Kalit maydoniga Gemini API kalitingizni kiriting.');
+    messages.push({ role: 'assistant', content: 'API kalit kiritilmagan.' });
+    openModal('settingsModal');
+    return;
+  }
   const temp = parseFloat(document.getElementById('tempSlider').value);
   const maxTok = parseInt(document.getElementById('maxTokens').value);
   const systemPrompt = document.getElementById('systemPrompt').value;
@@ -1772,6 +1781,25 @@ function scrollToBottom() {
 // ═══════════ INIT ═══════════
 renderChatHistory();
 document.getElementById('msgCount').textContent = totalMessages + ' ta xabar';
+
+// Load saved API key
+const savedKey = localStorage.getItem('orix_api_key') || '';
+document.getElementById('apiKeyInput').value = savedKey;
+
+// If no API key, prompt user
+if (!savedKey) {
+  setTimeout(() => openModal('settingsModal'), 500);
+}
+
+// Save API key when settings closed
+const origCloseModal = closeModal;
+function closeModal(id) {
+  if (id === 'settingsModal') {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key) localStorage.setItem('orix_api_key', key);
+  }
+  document.getElementById(id).classList.remove('active');
+}
 
 // Keyboard shortcut
 document.addEventListener('keydown', (e) => {
