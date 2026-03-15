@@ -1485,14 +1485,6 @@ async function generateResponse() {
   scrollToBottom();
 
   const apiKey = document.getElementById('apiKeyInput').value.trim() || API_KEY;
-  if (!apiKey) {
-    isGenerating = false;
-    document.getElementById('stopBtn').classList.remove('active');
-    document.getElementById('typingIndicator').classList.remove('active');
-    appendMessage('assistant', '⚠️ API kalit kiritilmagan. Sozlamalar → API Kalit maydoniga Groq API kalitingizni kiriting.');
-    messages.push({ role: 'assistant', content: 'API kalit kiritilmagan.' });
-    return;
-  }
   const temp = parseFloat(document.getElementById('tempSlider').value);
   const maxTok = parseInt(document.getElementById('maxTokens').value);
   const systemPrompt = document.getElementById('systemPrompt').value;
@@ -1502,87 +1494,62 @@ async function generateResponse() {
     ...messages.map(m => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content }))
   ];
 
-  // Groq models to try
-  const models = [
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',
-    'gemma2-9b-it',
-    'mixtral-8x7b-32768'
-  ];
-
   abortController = new AbortController();
-  let success = false;
-  let lastError = '';
 
-  for (const model of models) {
-    if (!isGenerating) break;
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      signal: abortController.signal,
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: apiMessages,
+        temperature: temp,
+        max_tokens: maxTok,
+      })
+    });
 
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        signal: abortController.signal,
-        body: JSON.stringify({
-          model: model,
-          messages: apiMessages,
-          temperature: temp,
-          max_tokens: maxTok,
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const errMsg = errData.error?.message || '';
-        if (res.status === 429 || errMsg.includes('rate') || errMsg.includes('limit')) {
-          console.log(`${model} failed, trying next...`);
-          continue;
-        }
-        throw new Error(errMsg || `API xatosi: ${res.status}`);
-      }
-
-      const data = await res.json();
-      const aiText = data.choices?.[0]?.message?.content || 'Javob olib bo\'lmadi.';
-
-      document.getElementById('typingIndicator').classList.remove('active');
-
-      messages.push({ role: 'assistant', content: aiText });
-
-      const msgEl = createAIMessageElement();
-      const contentEl = document.getElementById('streamingContent');
-      const actionsEl = document.getElementById('streamingActions');
-
-      const streamEnabled = document.getElementById('streamToggle').classList.contains('active');
-
-      if (streamEnabled) {
-        await streamText(contentEl, aiText);
-      } else {
-        contentEl.innerHTML = formatMarkdown(aiText);
-      }
-
-      contentEl.removeAttribute('id');
-      actionsEl.removeAttribute('id');
-      actionsEl.style.display = 'flex';
-
-      saveConversation();
-      renderChatHistory();
-      success = true;
-      break;
-
-    } catch (err) {
-      if (err.name === 'AbortError') { success = true; break; }
-      lastError = `${model}: ${err.message}`;
-      console.error(`${model} error:`, err);
-      continue;
-    }
-  }
-
-  if (!success && isGenerating) {
     document.getElementById('typingIndicator').classList.remove('active');
-    appendMessage('assistant', '⚠️ Xatolik: ' + (lastError || 'Noma\'lum xatolik. F12 → Console tekshiring.'));
-    messages.push({ role: 'assistant', content: 'Ulanish xatosi' });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(JSON.stringify(data));
+    }
+
+    const aiText = data.choices?.[0]?.message?.content || 'Javob olib bo\'lmadi.';
+
+    messages.push({ role: 'assistant', content: aiText });
+
+    const msgEl = createAIMessageElement();
+    const contentEl = document.getElementById('streamingContent');
+    const actionsEl = document.getElementById('streamingActions');
+
+    const streamEnabled = document.getElementById('streamToggle').classList.contains('active');
+
+    if (streamEnabled) {
+      await streamText(contentEl, aiText);
+    } else {
+      contentEl.innerHTML = formatMarkdown(aiText);
+    }
+
+    contentEl.removeAttribute('id');
+    actionsEl.removeAttribute('id');
+    actionsEl.style.display = 'flex';
+
+    saveConversation();
+    renderChatHistory();
+
+  } catch (err) {
+    document.getElementById('typingIndicator').classList.remove('active');
+    if (err.name !== 'AbortError') {
+      const errText = '⚠️ Xatolik: ' + err.message;
+      appendMessage('assistant', errText);
+      messages.push({ role: 'assistant', content: errText });
+    }
   }
 
   isGenerating = false;
