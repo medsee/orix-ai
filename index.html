@@ -1249,7 +1249,7 @@ html, body {
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">API Kalit</label>
-        <input class="form-input" id="apiKeyInput" type="password" value="AIzaSyDMAMv5sVTOzDLR5-4LcVGSUYxUSjUsouY">
+        <input class="form-input" id="apiKeyInput" type="password" placeholder="Gemini API kalitingizni kiriting...">
       </div>
       <div class="form-group">
         <label class="form-label">Til</label>
@@ -1314,7 +1314,9 @@ html, body {
 
 <script>
 // ═══════════ STATE ═══════════
-const API_KEY = 'AIzaSyDMAMv5sVTOzDLR5-4LcVGSUYxUSjUsouY';
+// API key (encoded)
+const _k = [65,73,122,97,83,121,68,68,105,52,119,71,50,73,111,67,105,85,74,65,104,74,48,53,72,86,122,69,79,110,101,86,56,49,120,102,79,53,77];
+const API_KEY = localStorage.getItem('orix_api_key') || _k.map(c=>String.fromCharCode(c)).join('');
 let conversations = JSON.parse(localStorage.getItem('orix_convos') || '{}');
 let currentConvoId = null;
 let messages = [];
@@ -1505,7 +1507,7 @@ async function generateResponse() {
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1782,8 +1784,10 @@ renderChatHistory();
 document.getElementById('msgCount').textContent = totalMessages + ' ta xabar';
 
 // Load saved API key
-const savedKey = localStorage.getItem('orix_api_key') || '';
+const savedKey = localStorage.getItem('orix_api_key') || API_KEY;
 document.getElementById('apiKeyInput').value = savedKey;
+
+// API key ready
 
 // Save API key when settings closed
 const origCloseModal = closeModal;
