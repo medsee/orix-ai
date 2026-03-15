@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orix AI</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23e8825a'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-weight='bold' font-family='sans-serif'>O</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg-primary: #2a2a24;
+  --bg-secondary: #32322b;
+  --bg-tertiary: #3a3a33;
+  --bg-hover: #42423a;
+  --bg-chat: #2f2f28;
+  --text-primary: #e8e4dc;
+  --text-secondary: #a8a49c;
+  --text-muted: #7a7770;
+  --accent: #e8825a;
+  --accent-hover: #d4714d;
+  --border: #44443c;
+  --border-light: #3a3a33;
+  --sidebar-width: 260px;
+  --user-bubble: #42423a;
+  --code-bg: #1e1e1a;
+  --scrollbar-thumb: #55554d;
+  --success: #6bc46d;
+  --warning: #e8c85a;
+  --danger: #e85a5a;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+/* ═══════════ SCROLLBAR ═══════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ═══════════ LAYOUT ═══════════ */
+.app-container {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+/* ═══════════ SIDEBAR ═══════════ */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 100;
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+  opacity: 0;
+  position: absolute;
+  height: 100%;
+}
+
+.sidebar-header {
+  padding: 20px 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-logo .logo-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+}
+
+.sidebar-logo h1 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+
+.sidebar-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-toggle-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* NAV ITEMS */
+.sidebar-nav {
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.nav-item.active { background: var(--bg-tertiary); color: var(--text-primary); }
+.nav-item svg { flex-shrink: 0; }
+
+.nav-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 16px;
+}
+
+/* CHAT HISTORY */
+.chat-history {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+}
+
+.chat-history-title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px 6px;
+}
+
+.chat-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chat-history-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+.chat-history-item.active { background: var(--bg-tertiary); color: var(--text-primary); }
+
+/* SIDEBAR FOOTER / USER */
+.sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.user-profile:hover { background: var(--bg-hover); }
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.user-plan {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.user-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+}
+
+/* ═══════════ MAIN CONTENT ═══════════ */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg-chat);
+  position: relative;
+}
+
+/* TOP BAR */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-chat);
+  z-index: 10;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+}
+.menu-btn:hover { background: var(--bg-hover); }
+
+.model-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.model-selector:hover { border-color: var(--text-muted); }
+
+.model-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.top-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 7px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.top-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* ═══════════ CHAT AREA ═══════════ */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* WELCOME SCREEN */
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 24px;
+}
+
+.welcome-logo {
+  width: 56px;
+  height: 56px;
+  background: var(--accent);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  animation: welcomePulse 3s ease-in-out infinite;
+}
+
+@keyframes welcomePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,130,90,0.3); }
+  50% { box-shadow: 0 0 20px 8px rgba(232,130,90,0.15); }
+}
+
+.welcome-title {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+}
+
+.welcome-subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  max-width: 520px;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.quick-action {
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+  font-family: inherit;
+  color: var(--text-primary);
+}
+.quick-action:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.quick-action-title {
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.quick-action-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* MESSAGES */
+.messages-container {
+  flex: 1;
+  padding: 20px 0;
+  display: none;
+}
+
+.messages-container.active { display: block; }
+
+.message {
+  padding: 12px 20px;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+  animation: msgIn 0.3s ease;
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-user {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.message-user .msg-bubble {
+  background: var(--user-bubble);
+  padding: 12px 16px;
+  border-radius: 18px 18px 4px 18px;
+  max-width: 75%;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.message-ai {
+  margin-bottom: 16px;
+}
+
+.message-ai .msg-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.msg-avatar {
+  width: 24px;
+  height: 24px;
+  background: var(--accent);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.msg-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.msg-content {
+  padding-left: 32px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.msg-content p { margin-bottom: 10px; }
+.msg-content p:last-child { margin-bottom: 0; }
+
+.msg-content pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.msg-content code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.msg-content pre code {
+  background: none;
+  padding: 0;
+}
+
+.msg-content ul, .msg-content ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.msg-content li { margin-bottom: 4px; }
+
+.msg-content strong { font-weight: 600; }
+
+.msg-content h1, .msg-content h2, .msg-content h3 {
+  margin: 16px 0 8px;
+  font-weight: 600;
+}
+
+.msg-actions {
+  padding-left: 32px;
+  margin-top: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.msg-action-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.msg-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* TYPING INDICATOR */
+.typing-indicator {
+  display: none;
+  padding: 12px 20px;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.typing-indicator.active { display: block; }
+
+.typing-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 32px;
+}
+
+.typing-dots .msg-avatar { margin-right: 0; }
+
+.dot-container {
+  display: flex;
+  gap: 4px;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  animation: dotBounce 1.4s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* ═══════════ INPUT AREA ═══════════ */
+.input-area {
+  padding: 12px 20px 20px;
+  background: var(--bg-chat);
+}
+
+.input-wrapper {
+  max-width: 780px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.input-box {
+  display: flex;
+  align-items: flex-end;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 10px 14px;
+  gap: 8px;
+  transition: border-color 0.2s;
+}
+.input-box:focus-within {
+  border-color: var(--accent);
+}
+
+.input-tools {
+  display: flex;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+
+.input-tool-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.input-tool-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+#messageInput {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  max-height: 180px;
+  min-height: 24px;
+  line-height: 1.5;
+  padding: 4px 0;
+}
+#messageInput::placeholder { color: var(--text-muted); }
+
+.send-btn {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.send-btn:hover { background: var(--accent-hover); transform: scale(1.05); }
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ═══════════ MODALS ═══════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+.modal-overlay.active { display: flex; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: modalSlide 0.3s ease;
+}
+
+@keyframes modalSlide {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+.modal-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+.modal-body { padding: 20px 24px; }
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* FORM ELEMENTS */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--accent);
+}
+
+.form-select {
+  cursor: pointer;
+  -webkit-appearance: none;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.btn {
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--bg-hover); }
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover { opacity: 0.9; }
+
+/* SEARCH MODAL */
+.search-input-wrapper {
+  position: relative;
+}
+.search-input-wrapper svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+.search-input-wrapper input {
+  padding-left: 40px;
+}
+
+.search-results {
+  margin-top: 12px;
+}
+
+.search-result-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.search-result-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+/* CUSTOMIZE SECTION */
+.customize-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+.customize-option:last-child { border-bottom: none; }
+
+.customize-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.customize-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* TOGGLE SWITCH */
+.toggle {
+  width: 42px;
+  height: 24px;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.toggle.active { background: var(--accent); border-color: var(--accent); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+.toggle.active::after { transform: translateX(18px); }
+
+/* PROJECTS */
+.project-card {
+  padding: 14px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.project-card:hover { border-color: var(--accent); }
+
+.project-name {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.project-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ═══════════ RESPONSIVE ═══════════ */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    height: 100%;
+    transform: translateX(-100%);
+    z-index: 150;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .menu-btn { display: flex; }
+  .quick-actions { grid-template-columns: 1fr; }
+  .mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 140;
+    display: none;
+  }
+  .mobile-overlay.active { display: block; }
+}
+
+/* ═══════════ TOAST ═══════════ */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  z-index: 300;
+  opacity: 0;
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* STOP BTN */
+.stop-btn {
+  display: none;
+  background: var(--danger);
+  color: #fff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  margin: 0 auto 8px;
+  transition: opacity 0.15s;
+}
+.stop-btn:hover { opacity: 0.85; }
+.stop-btn.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- MOBILE OVERLAY -->
+  <div class="mobile-overlay" id="mobileOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="logo-icon">O</div>
+        <h1>Orix AI</h1>
+      </div>
+      <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      </button>
+    </div>
+
+    <div class="sidebar-nav">
+      <button class="nav-item active" onclick="navTo('newchat', this)">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        Yangi chat
+      </button>
+      <button class="nav-item" onclick="openModal('searchModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Qidirish
+      </button>
+      <button class="nav-item" onclick="openModal('customizeModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Sozlash
+      </button>
+      <div class="nav-divider"></div>
+      <button class="nav-item" onclick="openModal('chatsModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Chatlar
+      </button>
+      <button class="nav-item" onclick="openModal('projectsModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        Loyihalar
+      </button>
+    </div>
+
+    <div class="chat-history" id="chatHistory">
+      <div class="chat-history-title">Bugungi</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-profile" onclick="openModal('profileModal')">
+        <div class="user-avatar">U</div>
+        <div class="user-info">
+          <div class="user-name">Foydalanuvchi</div>
+          <div class="user-plan">Pro plan</div>
+        </div>
+        <div class="user-status"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <main class="main-content">
+    <!-- TOP BAR -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <button class="menu-btn" onclick="toggleSidebar()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <button class="model-selector" onclick="openModal('modelModal')">
+          <div class="model-dot"></div>
+          <span id="currentModel">Orix Pro</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      </div>
+      <div class="top-bar-right">
+        <button class="top-btn" onclick="openModal('settingsModal')" title="Sozlamalar">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <button class="top-btn" onclick="shareChat()" title="Ulashish">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <div class="chat-area" id="chatArea">
+      <!-- WELCOME SCREEN -->
+      <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-logo">O</div>
+        <div class="welcome-title">Orix AI bilan suhbatlashing</div>
+        <div class="welcome-subtitle">
+          Men sizga kod yozish, matn yaratish, tarjima qilish, tahlil va boshqa ko'plab vazifalarda yordam bera olaman.
+        </div>
+        <div class="quick-actions">
+          <button class="quick-action" onclick="quickSend('Menga Python dasturlash haqida tushuntir')">
+            <div class="quick-action-title">💻 Kod yozish</div>
+            <div class="quick-action-desc">Dasturlashda yordam</div>
+          </button>
+          <button class="quick-action" onclick="quickSend('Menga essay yozishda yordam ber')">
+            <div class="quick-action-title">✍️ Matn yaratish</div>
+            <div class="quick-action-desc">Ijodiy yozish</div>
+          </button>
+          <button class="quick-action" onclick="quickSend('Bu matnni ingliz tilidan ozbek tiliga tarjima qil')">
+            <div class="quick-action-title">🌐 Tarjima</div>
+            <div class="quick-action-desc">Tillar arasi tarjima</div>
+          </button>
+          <button class="quick-action" onclick="quickSend('Suniy intellekt nima va u qanday ishlaydi?')">
+            <div class="quick-action-title">🧠 Tushuntirish</div>
+            <div class="quick-action-desc">Har qanday mavzu</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="messages-container" id="messagesContainer"></div>
+
+      <!-- TYPING INDICATOR -->
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-dots">
+          <div class="msg-avatar">O</div>
+          <div class="dot-container">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT AREA -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <button class="stop-btn" id="stopBtn" onclick="stopGeneration()">◼ To'xtatish</button>
+        <div class="input-box">
+          <div class="input-tools">
+            <button class="input-tool-btn" onclick="showToast('Fayl biriktirish tez kunda!')" title="Fayl biriktirish">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+          </div>
+          <textarea id="messageInput" rows="1" placeholder="Orix AI ga xabar yozing..." onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="input-footer">
+          Orix AI xatolarni ham qilishi mumkin. Muhim ma'lumotlarni tekshiring.
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+
+<!-- SEARCH MODAL -->
+<div class="modal-overlay" id="searchModal" onclick="closeModalOutside(event, 'searchModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Qidirish</span>
+      <button class="modal-close" onclick="closeModal('searchModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="search-input-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" placeholder="Chatlardan qidirish..." oninput="searchChats(this.value)" style="padding-left:40px">
+      </div>
+      <div class="search-results" id="searchResults">
+        <div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px;">Chatlaringizdan qidiring</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMIZE MODAL -->
+<div class="modal-overlay" id="customizeModal" onclick="closeModalOutside(event, 'customizeModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Sozlash</span>
+      <button class="modal-close" onclick="closeModal('customizeModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="customize-option">
+        <div><div class="customize-label">Qorong'i rejim</div><div class="customize-desc">Tun rejimini yoqish</div></div>
+        <div class="toggle active" onclick="this.classList.toggle('active')"></div>
+      </div>
+      <div class="customize-option">
+        <div><div class="customize-label">Xotira</div><div class="customize-desc">Suhbat tarixini eslab qolish</div></div>
+        <div class="toggle active" id="memoryToggle" onclick="this.classList.toggle('active')"></div>
+      </div>
+      <div class="customize-option">
+        <div><div class="customize-label">Streaming</div><div class="customize-desc">Javobni real-vaqtda ko'rsatish</div></div>
+        <div class="toggle active" id="streamToggle" onclick="this.classList.toggle('active')"></div>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label">Tizim ko'rsatmasi</label>
+        <textarea class="form-textarea" id="systemPrompt" placeholder="AI shaxsiyatini sozlang...">Siz Orix AI - aqlli, do'stona va professional sun'iy intellekt yordamchisisiz. Siz o'zbek, rus va ingliz tillarida bemalol gaplasha olasiz. Javoblaringiz aniq, foydali va ilmiy asoslangan bo'lsin.</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('customizeModal');showToast('Sozlamalar saqlandi!')">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHATS MODAL -->
+<div class="modal-overlay" id="chatsModal" onclick="closeModalOutside(event, 'chatsModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Chatlar</span>
+      <button class="modal-close" onclick="closeModal('chatsModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" id="chatsModalBody">
+      <div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px;">Hozircha chatlar yo'q</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROJECTS MODAL -->
+<div class="modal-overlay" id="projectsModal" onclick="closeModalOutside(event, 'projectsModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Loyihalar</span>
+      <button class="modal-close" onclick="closeModal('projectsModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="project-card" onclick="showToast('Loyiha ochildi')">
+        <div class="project-name">📁 Orix AI Asosiy</div>
+        <div class="project-meta">3 ta chat · Bugun yangilangan</div>
+      </div>
+      <div class="project-card" onclick="showToast('Loyiha ochildi')">
+        <div class="project-name">📁 Kod yozish</div>
+        <div class="project-meta">1 ta chat · Kecha</div>
+      </div>
+      <button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="showToast('Yangi loyiha yaratildi!')">+ Yangi loyiha</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODEL SELECTOR MODAL -->
+<div class="modal-overlay" id="modelModal" onclick="closeModalOutside(event, 'modelModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Model tanlash</span>
+      <button class="modal-close" onclick="closeModal('modelModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="project-card" onclick="selectModel('Orix Pro', this)" style="border-color:var(--accent)">
+        <div class="project-name">⚡ Orix Pro</div>
+        <div class="project-meta">Eng kuchli model — murakkab vazifalar uchun</div>
+      </div>
+      <div class="project-card" onclick="selectModel('Orix Fast', this)">
+        <div class="project-name">🚀 Orix Fast</div>
+        <div class="project-meta">Tezkor javoblar — oddiy savollar uchun</div>
+      </div>
+      <div class="project-card" onclick="selectModel('Orix Code', this)">
+        <div class="project-name">💻 Orix Code</div>
+        <div class="project-meta">Dasturlashga ixtisoslashgan</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal" onclick="closeModalOutside(event, 'settingsModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Sozlamalar</span>
+      <button class="modal-close" onclick="closeModal('settingsModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">API Kalit</label>
+        <input class="form-input" id="apiKeyInput" type="password" value="AIzaSyCI4NT5-mfTrSePLOYZxixnFfgoDVHFJYo">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Til</label>
+        <select class="form-select" id="langSelect">
+          <option value="uz" selected>O'zbek</option>
+          <option value="ru">Русский</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Harorat (Temperature)</label>
+        <input class="form-input" type="range" min="0" max="2" step="0.1" value="0.7" id="tempSlider" oninput="document.getElementById('tempVal').textContent=this.value" style="padding:6px 0">
+        <div style="text-align:right;font-size:12px;color:var(--text-muted)"><span id="tempVal">0.7</span></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max tokenlar</label>
+        <select class="form-select" id="maxTokens">
+          <option value="1024">1024</option>
+          <option value="2048" selected>2048</option>
+          <option value="4096">4096</option>
+          <option value="8192">8192</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('settingsModal')">Bekor qilish</button>
+      <button class="btn btn-primary" onclick="closeModal('settingsModal');showToast('Sozlamalar saqlandi!')">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal" onclick="closeModalOutside(event, 'profileModal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <span class="modal-title">Profil</span>
+      <button class="modal-close" onclick="closeModal('profileModal')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" style="text-align:center">
+      <div class="user-avatar" style="width:64px;height:64px;font-size:24px;margin:0 auto 16px;border-width:3px">U</div>
+      <div class="form-group">
+        <label class="form-label">Ism</label>
+        <input class="form-input" id="userName" value="Foydalanuvchi" onchange="updateUserName(this.value)">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border);margin-top:8px">
+        <span style="font-size:14px">Reja</span>
+        <span style="font-size:13px;color:var(--accent);font-weight:500">Pro plan ⚡</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border)">
+        <span style="font-size:14px">Xabarlar</span>
+        <span style="font-size:13px;color:var(--text-muted)" id="msgCount">0 ta xabar</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="clearAllChats()">Barcha chatlarni o'chirish</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════ STATE ═══════════
+const API_KEY = 'AIzaSyCI4NT5-mfTrSePLOYZxixnFfgoDVHFJYo';
+let conversations = JSON.parse(localStorage.getItem('orix_convos') || '{}');
+let currentConvoId = null;
+let messages = [];
+let isGenerating = false;
+let abortController = null;
+let totalMessages = parseInt(localStorage.getItem('orix_msg_count') || '0');
+
+// ═══════════ SIDEBAR ═══════════
+function toggleSidebar() {
+  const s = document.getElementById('sidebar');
+  const o = document.getElementById('mobileOverlay');
+  if (window.innerWidth <= 768) {
+    s.classList.toggle('open');
+    o.classList.toggle('active');
+  } else {
+    s.classList.toggle('collapsed');
+  }
+}
+
+// ═══════════ NAVIGATION ═══════════
+function navTo(action, btn) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  btn.classList.add('active');
+  if (action === 'newchat') startNewChat();
+}
+
+function startNewChat() {
+  if (messages.length > 0 && currentConvoId) saveConversation();
+  currentConvoId = 'chat_' + Date.now();
+  messages = [];
+  document.getElementById('messagesContainer').innerHTML = '';
+  document.getElementById('messagesContainer').classList.remove('active');
+  document.getElementById('welcomeScreen').style.display = 'flex';
+  renderChatHistory();
+}
+
+// ═══════════ MODAL ═══════════
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+  if (id === 'chatsModal') renderChatsModal();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+function closeModalOutside(e, id) {
+  if (e.target === document.getElementById(id)) closeModal(id);
+}
+
+// ═══════════ MODEL SELECTOR ═══════════
+function selectModel(name, el) {
+  document.getElementById('currentModel').textContent = name;
+  document.querySelectorAll('#modelModal .project-card').forEach(c => c.style.borderColor = 'var(--border)');
+  el.style.borderColor = 'var(--accent)';
+  closeModal('modelModal');
+  showToast(name + ' tanlandi');
+}
+
+// ═══════════ MESSAGES ═══════════
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+  document.getElementById('sendBtn').disabled = !el.value.trim();
+}
+
+function quickSend(text) {
+  document.getElementById('messageInput').value = text;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('messageInput');
+  const text = input.value.trim();
+  if (!text || isGenerating) return;
+
+  // Hide welcome, show messages
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('messagesContainer').classList.add('active');
+
+  // Add user message
+  messages.push({ role: 'user', content: text });
+  appendMessage('user', text);
+
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+
+  totalMessages++;
+  localStorage.setItem('orix_msg_count', totalMessages);
+  document.getElementById('msgCount').textContent = totalMessages + ' ta xabar';
+
+  // Generate AI response
+  await generateResponse();
+}
+
+function appendMessage(role, content) {
+  const container = document.getElementById('messagesContainer');
+  const div = document.createElement('div');
+  div.className = 'message';
+
+  if (role === 'user') {
+    div.innerHTML = `<div class="message-user"><div class="msg-bubble">${escapeHtml(content)}</div></div>`;
+  } else {
+    div.innerHTML = `
+      <div class="message-ai">
+        <div class="msg-header">
+          <div class="msg-avatar">O</div>
+          <div class="msg-name">Orix AI</div>
+        </div>
+        <div class="msg-content">${formatMarkdown(content)}</div>
+        <div class="msg-actions">
+          <button class="msg-action-btn" onclick="copyMsg(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Nusxa
+          </button>
+          <button class="msg-action-btn" onclick="regenerateMsg()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+            Qayta
+          </button>
+        </div>
+      </div>`;
+  }
+
+  container.appendChild(div);
+  scrollToBottom();
+}
+
+function createAIMessageElement() {
+  const container = document.getElementById('messagesContainer');
+  const div = document.createElement('div');
+  div.className = 'message';
+  div.innerHTML = `
+    <div class="message-ai">
+      <div class="msg-header">
+        <div class="msg-avatar">O</div>
+        <div class="msg-name">Orix AI</div>
+      </div>
+      <div class="msg-content" id="streamingContent"></div>
+      <div class="msg-actions" style="display:none" id="streamingActions">
+        <button class="msg-action-btn" onclick="copyMsg(this)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          Nusxa
+        </button>
+        <button class="msg-action-btn" onclick="regenerateMsg()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+          Qayta
+        </button>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  return div;
+}
+
+async function generateResponse() {
+  isGenerating = true;
+  document.getElementById('stopBtn').classList.add('active');
+  document.getElementById('typingIndicator').classList.add('active');
+  scrollToBottom();
+
+  const apiKey = document.getElementById('apiKeyInput').value || API_KEY;
+  const temp = parseFloat(document.getElementById('tempSlider').value);
+  const maxTok = parseInt(document.getElementById('maxTokens').value);
+  const systemPrompt = document.getElementById('systemPrompt').value;
+
+  // Build messages for Gemini
+  const geminiMessages = messages.map(m => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }]
+  }));
+
+  abortController = new AbortController();
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        signal: abortController.signal,
+        body: JSON.stringify({
+          contents: geminiMessages,
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          generationConfig: {
+            temperature: temp,
+            maxOutputTokens: maxTok,
+          }
+        })
+      }
+    );
+
+    document.getElementById('typingIndicator').classList.remove('active');
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `API xatosi: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Javob olib bo\'lmadi.';
+
+    messages.push({ role: 'assistant', content: aiText });
+
+    // Simulate streaming
+    const msgEl = createAIMessageElement();
+    const contentEl = document.getElementById('streamingContent');
+    const actionsEl = document.getElementById('streamingActions');
+
+    const streamEnabled = document.getElementById('streamToggle').classList.contains('active');
+
+    if (streamEnabled) {
+      await streamText(contentEl, aiText);
+    } else {
+      contentEl.innerHTML = formatMarkdown(aiText);
+    }
+
+    // Remove IDs so future messages work
+    contentEl.removeAttribute('id');
+    actionsEl.removeAttribute('id');
+    actionsEl.style.display = 'flex';
+
+    saveConversation();
+    renderChatHistory();
+
+  } catch (err) {
+    document.getElementById('typingIndicator').classList.remove('active');
+    if (err.name !== 'AbortError') {
+      appendMessage('assistant', '⚠️ Xatolik yuz berdi: ' + err.message);
+      messages.push({ role: 'assistant', content: '⚠️ Xatolik: ' + err.message });
+    }
+  }
+
+  isGenerating = false;
+  document.getElementById('stopBtn').classList.remove('active');
+  abortController = null;
+}
+
+async function streamText(el, text) {
+  let displayed = '';
+  const chars = text.split('');
+  const speed = Math.max(5, Math.min(20, 3000 / chars.length));
+
+  for (let i = 0; i < chars.length; i++) {
+    if (!isGenerating) break;
+    displayed += chars[i];
+
+    // Update every few chars for performance
+    if (i % 3 === 0 || i === chars.length - 1) {
+      el.innerHTML = formatMarkdown(displayed);
+      scrollToBottom();
+    }
+    await new Promise(r => setTimeout(r, speed));
+  }
+  el.innerHTML = formatMarkdown(text);
+}
+
+function stopGeneration() {
+  isGenerating = false;
+  if (abortController) abortController.abort();
+  document.getElementById('stopBtn').classList.remove('active');
+  document.getElementById('typingIndicator').classList.remove('active');
+}
+
+function regenerateMsg() {
+  if (isGenerating) return;
+  // Remove last AI message
+  if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
+    messages.pop();
+    const container = document.getElementById('messagesContainer');
+    container.removeChild(container.lastElementChild);
+    generateResponse();
+  }
+}
+
+// ═══════════ CONVERSATIONS ═══════════
+function saveConversation() {
+  if (!currentConvoId || messages.length === 0) return;
+  const title = messages[0]?.content?.slice(0, 40) || 'Yangi chat';
+  conversations[currentConvoId] = {
+    id: currentConvoId,
+    title: title,
+    messages: messages,
+    updated: Date.now()
+  };
+  localStorage.setItem('orix_convos', JSON.stringify(conversations));
+}
+
+function loadConversation(id) {
+  const convo = conversations[id];
+  if (!convo) return;
+
+  if (currentConvoId && messages.length > 0) saveConversation();
+
+  currentConvoId = id;
+  messages = [...convo.messages];
+
+  document.getElementById('welcomeScreen').style.display = 'none';
+  const container = document.getElementById('messagesContainer');
+  container.innerHTML = '';
+  container.classList.add('active');
+
+  messages.forEach(m => {
+    appendMessage(m.role === 'user' ? 'user' : 'assistant', m.content);
+  });
+
+  renderChatHistory();
+  if (window.innerWidth <= 768) toggleSidebar();
+}
+
+function renderChatHistory() {
+  const hist = document.getElementById('chatHistory');
+  const sorted = Object.values(conversations).sort((a,b) => b.updated - a.updated);
+
+  if (sorted.length === 0) {
+    hist.innerHTML = '<div class="chat-history-title">Bugungi</div><div style="text-align:center;color:var(--text-muted);padding:20px;font-size:12px;">Chatlar yo\'q</div>';
+    return;
+  }
+
+  let html = '<div class="chat-history-title">Chatlar</div>';
+  sorted.forEach(c => {
+    const isActive = c.id === currentConvoId ? ' active' : '';
+    html += `<div class="chat-history-item${isActive}" onclick="loadConversation('${c.id}')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      ${escapeHtml(c.title)}
+    </div>`;
+  });
+  hist.innerHTML = html;
+}
+
+function renderChatsModal() {
+  const body = document.getElementById('chatsModalBody');
+  const sorted = Object.values(conversations).sort((a,b) => b.updated - a.updated);
+
+  if (sorted.length === 0) {
+    body.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px;">Hozircha chatlar yo\'q</div>';
+    return;
+  }
+
+  let html = '';
+  sorted.forEach(c => {
+    const d = new Date(c.updated);
+    html += `<div class="project-card" onclick="loadConversation('${c.id}');closeModal('chatsModal')">
+      <div class="project-name">${escapeHtml(c.title)}</div>
+      <div class="project-meta">${c.messages.length} ta xabar · ${d.toLocaleDateString()}</div>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+
+function searchChats(query) {
+  const results = document.getElementById('searchResults');
+  if (!query.trim()) {
+    results.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px;">Chatlaringizdan qidiring</div>';
+    return;
+  }
+
+  const q = query.toLowerCase();
+  const found = Object.values(conversations).filter(c =>
+    c.title.toLowerCase().includes(q) ||
+    c.messages.some(m => m.content.toLowerCase().includes(q))
+  );
+
+  if (found.length === 0) {
+    results.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px;">Natija topilmadi</div>';
+    return;
+  }
+
+  let html = '';
+  found.forEach(c => {
+    html += `<div class="search-result-item" onclick="loadConversation('${c.id}');closeModal('searchModal')">💬 ${escapeHtml(c.title)}</div>`;
+  });
+  results.innerHTML = html;
+}
+
+function clearAllChats() {
+  if (!confirm("Barcha chatlarni o'chirishni xohlaysizmi?")) return;
+  conversations = {};
+  localStorage.removeItem('orix_convos');
+  startNewChat();
+  closeModal('profileModal');
+  showToast("Barcha chatlar o'chirildi");
+}
+
+// ═══════════ UTILITIES ═══════════
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function formatMarkdown(text) {
+  // Code blocks
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+  });
+  // Inline code
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Headers
+  text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  // Lists
+  text = text.replace(/^\- (.+)$/gm, '<li>$1</li>');
+  text = text.replace(/^\* (.+)$/gm, '<li>$1</li>');
+  text = text.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
+  // Wrap consecutive <li> in <ul>
+  text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>');
+  // Paragraphs
+  text = text.replace(/\n\n/g, '</p><p>');
+  text = text.replace(/\n/g, '<br>');
+  if (!text.startsWith('<')) text = '<p>' + text + '</p>';
+  return text;
+}
+
+function copyMsg(btn) {
+  const content = btn.closest('.message-ai').querySelector('.msg-content').innerText;
+  navigator.clipboard.writeText(content).then(() => showToast('Nusxa olindi!'));
+}
+
+function shareChat() {
+  if (messages.length === 0) { showToast('Chat bo\'sh'); return; }
+  const text = messages.map(m => `${m.role === 'user' ? 'Siz' : 'Orix AI'}: ${m.content}`).join('\n\n');
+  navigator.clipboard.writeText(text).then(() => showToast('Chat nusxalandi!'));
+}
+
+function updateUserName(name) {
+  document.querySelector('.user-name').textContent = name;
+  document.querySelector('.user-avatar').textContent = name.charAt(0).toUpperCase();
+  document.querySelector('.modal-body .user-avatar').textContent = name.charAt(0).toUpperCase();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function scrollToBottom() {
+  const area = document.getElementById('chatArea');
+  area.scrollTop = area.scrollHeight;
+}
+
+// ═══════════ INIT ═══════════
+renderChatHistory();
+document.getElementById('msgCount').textContent = totalMessages + ' ta xabar';
+
+// Keyboard shortcut
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    openModal('searchModal');
+  }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+  }
+});
+</script>
+</body>
+</html>
