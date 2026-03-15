@@ -1512,6 +1512,7 @@ async function generateResponse() {
 
   abortController = new AbortController();
   let success = false;
+  let lastError = '';
 
   for (const model of models) {
     if (!isGenerating) break;
@@ -1572,14 +1573,15 @@ async function generateResponse() {
 
     } catch (err) {
       if (err.name === 'AbortError') { success = true; break; }
-      console.log(`${model} error:`, err.message);
+      lastError = `${model}: ${err.message}`;
+      console.error(`${model} error:`, err);
       continue;
     }
   }
 
   if (!success && isGenerating) {
     document.getElementById('typingIndicator').classList.remove('active');
-    appendMessage('assistant', '⚠️ Xatolik yuz berdi. Iltimos, qaytadan urinib ko\'ring.');
+    appendMessage('assistant', '⚠️ Xatolik: ' + (lastError || 'Noma\'lum xatolik. F12 → Console tekshiring.'));
     messages.push({ role: 'assistant', content: 'Ulanish xatosi' });
   }
 
